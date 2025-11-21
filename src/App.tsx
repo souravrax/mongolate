@@ -4,23 +4,15 @@ import { textToSpeech } from "@/services/tts";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { Loader2, Settings, Languages, Volume2 } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
+import { Loader2, Languages, Volume2 } from "lucide-react";
 
 function App() {
   const [inputText, setInputText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hfToken, setHfToken] = useState("");
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleTranslate = async () => {
     if (!inputText.trim()) {
@@ -71,32 +63,9 @@ function App() {
               <Languages className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Mongolate</h1>
+            <p className="text-xs text-slate-500">For Pineapple</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-          >
-            <Settings className="w-5 h-5 text-slate-500" />
-          </Button>
         </header>
-
-        <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <CollapsibleContent className="space-y-2 mb-4 p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-            <Label htmlFor="token">Voiser API Key (authCode)</Label>
-            <Input
-              id="token"
-              type="password"
-              placeholder="Enter your Voiser authCode..."
-              value={hfToken}
-              onChange={(e) => setHfToken(e.target.value)}
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-slate-500">
-              Required for TTS. Get it from your Voiser.net account.
-            </p>
-          </CollapsibleContent>
-        </Collapsible>
 
         <Card className="border-none shadow-lg bg-white/80 backdrop-blur-sm">
           <CardHeader className="pb-2">
