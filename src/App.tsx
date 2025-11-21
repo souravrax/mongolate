@@ -1,35 +1,161 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { translateText } from "@/services/translate";
+import { textToSpeech } from "@/services/tts";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import { Loader2, Settings, Languages, Volume2 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [inputText, setInputText] = useState("");
+  const [translatedText, setTranslatedText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hfToken, setHfToken] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleTranslate = async () => {
+    if (!inputText.trim()) {
+      toast.error("Please enter some text to translate.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await translateText(inputText);
+      setTranslatedText(result);
+      toast.success("Translation complete!");
+    } catch (error) {
+      toast.error("Translation failed. Please try again.");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTTS = async () => {
+    if (!translatedText) return;
+
+    setIsPlaying(true);
+    try {
+      // We re-use hfToken state for Narakeet API key
+      const audioUrl = await textToSpeech(translatedText, hfToken);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+      };
+      
+      await audio.play();
+    } catch (error) {
+      toast.error("Failed to generate speech. Check your token or try again.");
+      console.error(error);
+      setIsPlaying(false);
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      <div className="max-w-md mx-auto space-y-6">
+        <header className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <Languages className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Mongolate</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          >
+            <Settings className="w-5 h-5 text-slate-500" />
+          </Button>
+        </header>
+
+        <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <CollapsibleContent className="space-y-2 mb-4 p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+            <Label htmlFor="token">Voiser API Key (authCode)</Label>
+            <Input
+              id="token"
+              type="password"
+              placeholder="Enter your Voiser authCode..."
+              value={hfToken}
+              onChange={(e) => setHfToken(e.target.value)}
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-slate-500">
+              Required for TTS. Get it from your Voiser.net account.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Card className="border-none shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider">English</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Enter text to translate..."
+              className="min-h-[120px] resize-none text-lg border-slate-200 focus-visible:ring-blue-500"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        <Button 
+          className="w-full h-12 text-lg font-medium bg-blue-600 hover:bg-blue-700 shadow-md transition-all active:scale-[0.98]"
+          onClick={handleTranslate}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Translating...
+            </>
+          ) : (
+            "Translate"
+          )}
+        </Button>
+
+        {translatedText && (
+          <Card className="border-none shadow-lg bg-blue-50/50 border-blue-100">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-medium text-blue-600 uppercase tracking-wider">Mongolian</CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                onClick={handleTTS}
+                disabled={isPlaying}
+              >
+                {isPlaying ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Volume2 className="h-5 w-5" />
+                )}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="min-h-[120px] text-lg text-slate-800 leading-relaxed whitespace-pre-wrap">
+                {translatedText}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      <Toaster />
+    </div>
+  );
 }
 
-export default App
+export default App;
