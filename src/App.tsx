@@ -47,7 +47,7 @@ function App() {
     setIsPlaying(true);
     try {
       // We re-use hfToken state for Narakeet API key
-      const audioUrl = await textToSpeech(translatedText, hfToken);
+      const audioUrl = await textToSpeech(translatedText);
       const audio = new Audio(audioUrl);
       
       audio.onended = () => {

@@ -1,0 +1,7 @@
+fastapi>=0.95
+uvicorn[standard]>=0.22
+transformers>=4.33
+accelerate
+torch
+scipy
+numpy
