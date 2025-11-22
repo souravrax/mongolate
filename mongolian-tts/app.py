@@ -1,12 +1,10 @@
 # app.py
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from transformers import VitsModel, AutoTokenizer
-import torch
-import numpy as np
+from pydantic import BaseModel, Field
 import scipy.io.wavfile as wavfile
 import io
+from tts_service import TTSManager
 
 # CORS
 from starlette.middleware.cors import CORSMiddleware
@@ -29,34 +27,24 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],  # if you want the browser to read filename header
 )
 
-model_id = "facebook/mms-tts-mon"
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Lazy load the model on startup to avoid cold-start failures in some environments.
-@app.on_event("startup")
-def load_model():
-    global model, tokenizer
-    model = VitsModel.from_pretrained(model_id).to(device)
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+# Initialize TTS Manager
+tts_manager = TTSManager()
 
 class TTSRequest(BaseModel):
     text: str
+    language_id: str = Field(default="mon", description="Language ID (e.g., 'mon', 'eng')")
 
 @app.post("/tts")
 async def tts(req: TTSRequest):
     if not req.text or not req.text.strip():
         return {"error": "text required"}
 
-    inputs = tokenizer(req.text, return_tensors="pt").to(device)
-    with torch.no_grad():
-        out = model(**inputs).waveform
-
-    waveform = out.squeeze().cpu().numpy()
-    sr = getattr(model.config, "sampling_rate", 22050)
-
-    # normalize and convert to int16 PCM
-    maxv = float(np.max(np.abs(waveform))) or 1.0
-    audio_int16 = (waveform / maxv * 32767).astype(np.int16)
+    try:
+        sr, audio_int16 = tts_manager.generate_audio(req.text, req.language_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     buffer = io.BytesIO()
     wavfile.write(buffer, sr, audio_int16)

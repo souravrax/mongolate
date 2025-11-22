@@ -1,4 +1,4 @@
-export const textToSpeech = async (text: string): Promise<string> => {
+export const textToSpeech = async (text: string, languageId: string = "mon"): Promise<string> => {
     if (!text.trim()) {
         throw new Error("Text is empty");
     }
@@ -13,7 +13,8 @@ export const textToSpeech = async (text: string): Promise<string> => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                text: text
+                text: text,
+                language_id: languageId
             })
         });
 

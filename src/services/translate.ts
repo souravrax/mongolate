@@ -26,14 +26,14 @@ export interface TranslationResponse {
 
 const MYMEMORY_DE = import.meta.env.VITE_MYMEMORY_DE;
 
-export const translateText = async (text: string): Promise<string> => {
+export const translateText = async (text: string, sourceLang: string = "en", targetLang: string = "mn"): Promise<string> => {
     if (!text.trim()) return "";
 
     try {
         const response = await fetch(
             `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
                 text
-            )}&langpair=en|mn&de=${MYMEMORY_DE}`
+            )}&langpair=${sourceLang}|${targetLang}&de=${MYMEMORY_DE}`
         );
 
         if (!response.ok) {
