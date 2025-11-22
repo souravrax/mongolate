@@ -11,7 +11,7 @@ function App() {
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg">
-              <Languages className="w-6 h-6 text-white" />
+              <Languages className="w-6 h-6 text-foreground" />
             </div>
             <h1 className="text-2xl font-instrument-serif font-semibold text-primary tracking-tight">Mongolate</h1>
             <p className="text-xs text-foreground/50">for Pineapple</p>
