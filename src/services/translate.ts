@@ -24,6 +24,8 @@ export interface TranslationResponse {
     }>;
 }
 
+const MYMEMORY_DE = import.meta.env.VITE_MYMEMORY_DE;
+
 export const translateText = async (text: string): Promise<string> => {
     if (!text.trim()) return "";
 
@@ -31,7 +33,7 @@ export const translateText = async (text: string): Promise<string> => {
         const response = await fetch(
             `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
                 text
-            )}&langpair=en|mn`
+            )}&langpair=en|mn&de=${MYMEMORY_DE}`
         );
 
         if (!response.ok) {
