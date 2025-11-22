@@ -61,6 +61,8 @@
   --shadow-shadow: var(--shadow);
   --font-weight-base: 500;
   --font-weight-heading: 900;
+  --font-family-base: "Inter", sans-serif;
+  --font-instrument-serif: "Instrument Serif", serif;
 }
   
 @layer base {
