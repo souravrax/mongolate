@@ -5,3 +5,4 @@ accelerate
 torch
 scipy
 numpy
+httpx==0.27.0

@@ -1,4 +1,5 @@
 # app.py
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -64,23 +65,30 @@ class TranslateRequest(BaseModel):
 
 @app.post("/translate")
 async def translate(req: TranslateRequest):
-    if not req.text or not req.text.strip():
+    if not req.text.strip():
         return {"error": "text required"}
-
-    # Google unofficial API endpoint
-    url = (
-        "https://translate.googleapis.com/translate_a/single"
-        f"?client=gtx&sl={req.source_lang}&tl={req.target_lang}"
-        f"&dt=t&q={httpx.utils.quote(req.text)}"
-    )
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(url, timeout=10)
+            resp = await client.get(
+                "https://translate.googleapis.com/translate_a/single",
+                params={
+                    "client": "gtx",
+                    "sl": req.source_lang,
+                    "tl": req.target_lang,
+                    "dt": "t",
+                    "q": req.text,
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
             data = resp.json()
 
-        translated = data[0][0][0]  # extract text
+        translated = data[0][0][0]
         return {"translated": translated}
 
+    except httpx.HTTPError as e:
+        # network / HTTP issues
+        raise HTTPException(status_code=502, detail=f"Translate upstream error: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
