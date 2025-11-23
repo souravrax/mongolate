@@ -1,40 +1,27 @@
 export interface TranslationResponse {
-    responseData: {
-        translatedText: string;
-        match: number;
-    };
-    responseStatus: number;
-    responderId: string | null;
-    exception_code: string | null;
-    matches: Array<{
-        id: string;
-        segment: string;
-        translation: string;
-        source: string;
-        target: string;
-        quality: number;
-        reference: string | null;
-        "usage-count": number;
-        subject: string;
-        "created-by": string;
-        "last-updated-by": string;
-        "create-date": string;
-        "last-update-date": string;
-        match: number;
-    }>;
+    translated: string;
 }
-
-const MYMEMORY_DE = import.meta.env.VITE_MYMEMORY_DE;
 
 export const translateText = async (text: string, sourceLang: string = "en", targetLang: string = "mn"): Promise<string> => {
     if (!text.trim()) return "";
 
     try {
-        const response = await fetch(
-            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
-                text
-            )}&langpair=${sourceLang}|${targetLang}&de=${MYMEMORY_DE}`
-        );
+        const baseUrl = import.meta.env.VITE_API_BASE_URL;
+        if (!baseUrl) {
+            throw new Error("VITE_ENV is not defined");
+        }
+
+        const response = await fetch(`${baseUrl}/translate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: text,
+                target_lang: targetLang,
+                source_lang: sourceLang
+            })
+        });
 
         if (!response.ok) {
             throw new Error(`Translation failed: ${response.statusText}`);
@@ -42,12 +29,8 @@ export const translateText = async (text: string, sourceLang: string = "en", tar
 
         const data: TranslationResponse = await response.json();
 
-        if (data.responseStatus !== 200) {
-            // MyMemory sometimes returns 403 or other codes in responseStatus even if HTTP is 200
-            throw new Error(data.responseData.translatedText || "Translation error");
-        }
+        return data.translated;
 
-        return data.responseData.translatedText;
     } catch (error) {
         console.error("Translation Error:", error);
         throw error;

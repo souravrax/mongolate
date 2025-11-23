@@ -11,9 +11,9 @@ import { Loader2, Volume2, CopyIcon, ArrowRightLeft } from "lucide-react";
 const LANGUAGES = [
     { id: "en", name: "English" },
     { id: "mn", name: "Mongolian" },
-    { id: "tha", name: "Thai" },
-    { id: "ben", name: "Bengali" },
-    { id: "hin", name: "Hindi" },
+    { id: "th", name: "Thai" },
+    { id: "bn", name: "Bengali" },
+    { id: "hi", name: "Hindi" },
 ];
 
 function Translator() {

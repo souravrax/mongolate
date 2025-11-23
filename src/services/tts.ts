@@ -4,7 +4,8 @@ export const textToSpeech = async (text: string, languageId: string = "mon"): Pr
     }
 
     // Custom TTS endpoint
-    const endpoint = "https://mongo-tts.souravrax.com/tts";
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const endpoint = `${baseUrl}/tts`;
 
     try {
         const response = await fetch(endpoint, {
