@@ -54,3 +54,33 @@ async def tts(req: TTSRequest):
         "Content-Disposition": 'attachment; filename="tts.wav"'
     }
     return StreamingResponse(buffer, media_type="audio/wav", headers=headers)
+
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_lang: str = "en"    # e.g. "en", "hi", "th"
+    source_lang: str = "auto"  # auto detect by default
+
+
+@app.post("/translate")
+async def translate(req: TranslateRequest):
+    if not req.text or not req.text.strip():
+        return {"error": "text required"}
+
+    # Google unofficial API endpoint
+    url = (
+        "https://translate.googleapis.com/translate_a/single"
+        f"?client=gtx&sl={req.source_lang}&tl={req.target_lang}"
+        f"&dt=t&q={httpx.utils.quote(req.text)}"
+    )
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=10)
+            data = resp.json()
+
+        translated = data[0][0][0]  # extract text
+        return {"translated": translated}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

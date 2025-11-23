@@ -20,7 +20,7 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy app code
-COPY app.py /app/app.py
+COPY *.py /app/
 
 # Create non-root user and ensure cache dir exists
 RUN useradd --create-home --shell /bin/bash appuser \
