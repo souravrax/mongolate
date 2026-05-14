@@ -79,6 +79,31 @@ async def tts(req: TTSRequest):
     return StreamingResponse(buffer, media_type="audio/mpeg", headers=headers)
 
 
+@app.post("/tts/stream")
+async def tts_stream(req: TTSRequest):
+    if not req.text or not req.text.strip():
+        return {"error": "text required"}
+
+    voice = VOICE_MAP.get(req.language_id.lower())
+    if not voice:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Language '{req.language_id}' is not supported."
+        )
+
+    try:
+        communicate = edge_tts.Communicate(req.text, voice)
+
+        async def generate():
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    yield chunk["data"]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return StreamingResponse(generate(), media_type="audio/mpeg")
+
+
 class TranslateRequest(BaseModel):
     text: str
     target_lang: str = "en"

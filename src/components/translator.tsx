@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { translateText } from "@/services/translate";
-import { textToSpeech } from "@/services/tts";
+import { streamTextToSpeech } from "@/services/tts";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X } from "lucide-react";
+import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X, Square } from "lucide-react";
 import { useHistoryStore } from "@/store/history-store";
 
 const LANGUAGES = [
@@ -20,10 +20,11 @@ function Translator() {
     const [inputText, setInputText] = useState("");
     const [translatedText, setTranslatedText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing'>('idle');
     const [sourceLang, setSourceLang] = useState("en");
     const [targetLang, setTargetLang] = useState("mn");
     const outputRef = useRef<HTMLDivElement>(null);
+    const ttsSessionRef = useRef<{ stop: () => void } | null>(null);
 
     const { saveTranslation } = useHistoryStore();
     const hasResult = !!translatedText;
@@ -54,32 +55,49 @@ function Translator() {
         }
     };
 
-    const handleTTS = async () => {
+    const handleTTS = () => {
+        // Stop if already playing or buffering
+        if (ttsState !== 'idle') {
+            ttsSessionRef.current?.stop();
+            ttsSessionRef.current = null;
+            setTtsState('idle');
+            return;
+        }
+
         if (!translatedText) return;
 
-        setIsPlaying(true);
-        try {
-            const langMap: Record<string, string> = {
-                'en': 'eng',
-                'mn': 'mon',
-                'th': 'tha',
-                'bn': 'ben',
-                'hi': 'hin'
-            };
-            const mappedLang = langMap[targetLang] || targetLang;
-            const audioUrl = await textToSpeech(translatedText, mappedLang);
-            const audio = new Audio(audioUrl);
+        const langMap: Record<string, string> = {
+            'en': 'eng',
+            'mn': 'mon',
+            'th': 'tha',
+            'bn': 'ben',
+            'hi': 'hin'
+        };
+        const mappedLang = langMap[targetLang] || targetLang;
 
-            audio.onended = () => {
-                setIsPlaying(false);
-            };
+        setTtsState('buffering');
 
-            await audio.play();
-        } catch (error) {
-            toast.error("Failed to generate speech. Check your token or try again.");
-            console.error(error);
-            setIsPlaying(false);
-        }
+        const session = streamTextToSpeech(translatedText, mappedLang, {
+            onPlay: () => setTtsState('playing'),
+            onEnd: () => {
+                ttsSessionRef.current = null;
+                setTtsState('idle');
+            },
+            onError: (err) => {
+                console.error("[Translator] onError:", err);
+                toast.error("Failed to play speech.");
+                ttsSessionRef.current = null;
+                setTtsState('idle');
+            },
+        });
+
+        ttsSessionRef.current = session;
+
+        session.play().catch((err) => {
+            console.error("[Translator] session.play() error:", err);
+            ttsSessionRef.current = null;
+            setTtsState('idle');
+        });
     };
 
     const handleCopy = () => {
@@ -231,11 +249,12 @@ function Translator() {
                             variant="neutral"
                             size="icon"
                             onClick={handleTTS}
-                            disabled={isPlaying}
                             className="h-8 w-8"
                         >
-                            {isPlaying ? (
+                            {ttsState === 'buffering' ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : ttsState === 'playing' ? (
+                                <Square className="h-4 w-4 fill-current" />
                             ) : (
                                 <Volume2 className="h-4 w-4" />
                             )}
