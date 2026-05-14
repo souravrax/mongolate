@@ -97,47 +97,53 @@ function Translator() {
     };
 
     return (
-        <div className="w-full flex flex-col gap-4">
-            <div className="grid grid-cols-3 gap-2 items-center place-content-center">
-                <Select value={sourceLang} onValueChange={setSourceLang}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Source Language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {LANGUAGES.map((lang) => (
-                            <SelectItem key={lang.id} value={lang.id}>
-                                {lang.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+        <div className="w-full flex flex-col gap-5">
+            <div className="flex items-center gap-2">
+                <div className="flex-1">
+                    <label className="text-xs font-semibold text-foreground/60 mb-1.5 block">From</label>
+                    <Select value={sourceLang} onValueChange={setSourceLang}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Source Language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {LANGUAGES.map((lang) => (
+                                <SelectItem key={lang.id} value={lang.id}>
+                                    {lang.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
 
-                <Button variant="neutral" onClick={handleSwapLanguages}>
-                    <ArrowRightLeft />
+                <Button variant="neutral" size="icon" onClick={handleSwapLanguages} className="mt-5">
+                    <ArrowRightLeft className="h-4 w-4" />
                 </Button>
 
-                <Select value={targetLang} onValueChange={setTargetLang}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Target Language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {LANGUAGES.map((lang) => (
-                            <SelectItem key={lang.id} value={lang.id}>
-                                {lang.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <div className="flex-1">
+                    <label className="text-xs font-semibold text-foreground/60 mb-1.5 block">To</label>
+                    <Select value={targetLang} onValueChange={setTargetLang}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Target Language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {LANGUAGES.map((lang) => (
+                                <SelectItem key={lang.id} value={lang.id}>
+                                    {lang.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Input</CardTitle>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-foreground/70">Input</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Textarea
                         placeholder="Enter text to translate..."
-                        className="min-h-[120px] resize-none text-lg"
+                        className="min-h-[120px] resize-none text-lg bg-transparent border-0 p-0 shadow-none focus-visible:ring-0"
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                     />
@@ -161,15 +167,15 @@ function Translator() {
 
             {translatedText && (
                 <Card>
-                    <CardHeader className="flex items-center justify-between">
-                        <CardTitle>Output</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between pb-3">
+                        <CardTitle className="text-sm text-foreground/70">Output</CardTitle>
                         <div className="flex items-center gap-2">
                             <Button
                                 variant="neutral"
                                 size="icon"
                                 onClick={handleCopy}
                             >
-                                <CopyIcon size={20} />
+                                <CopyIcon className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="neutral"
@@ -178,9 +184,9 @@ function Translator() {
                                 disabled={isPlaying}
                             >
                                 {isPlaying ? (
-                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                    <Volume2 className="h-5 w-5" />
+                                    <Volume2 className="h-4 w-4" />
                                 )}
                             </Button>
                         </div>
