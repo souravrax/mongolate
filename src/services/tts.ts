@@ -112,8 +112,8 @@ export function streamTextToSpeech(
             cleanup();
             callbacks?.onEnd?.();
         };
-        audio.onerror = (e) => {
-            console.error("[TTS] Audio error event:", (e.target as HTMLAudioElement).error);
+        audio.onerror = () => {
+            console.error("[TTS] Audio error event:", audio?.error);
             cleanup();
             callbacks?.onError?.(new Error("Audio playback failed"));
         };
