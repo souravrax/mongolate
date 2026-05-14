@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { Loader2, Volume2 } from "lucide-react";
+import { Loader2, Volume2, Square } from "lucide-react";
 import { AudioWave } from "./audio-wave";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -17,19 +17,11 @@ const LANGUAGES = [
 
 export default function TextToSpeech() {
     const [inputText, setInputText] = useState("");
-    const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing'>('idle');
+    const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing' | 'paused'>('idle');
     const [selectedLang, setSelectedLang] = useState("mon");
-    const ttsSessionRef = useRef<{ stop: () => void } | null>(null);
+    const ttsSessionRef = useRef<{ pause: () => void; resume: () => void; stop: () => void } | null>(null);
 
-    const handleTTS = () => {
-        // Stop if already playing or buffering
-        if (ttsState !== 'idle') {
-            ttsSessionRef.current?.stop();
-            ttsSessionRef.current = null;
-            setTtsState('idle');
-            return;
-        }
-
+    const startTTS = () => {
         if (!inputText.trim()) return;
 
         setTtsState('buffering');
@@ -57,6 +49,24 @@ export default function TextToSpeech() {
         });
     };
 
+    const handleTTS = () => {
+        if (ttsState === 'idle') {
+            startTTS();
+        } else if (ttsState === 'playing') {
+            ttsSessionRef.current?.pause();
+            setTtsState('paused');
+        } else if (ttsState === 'paused') {
+            ttsSessionRef.current?.resume();
+            setTtsState('playing');
+        }
+    };
+
+    const handleStopTTS = () => {
+        ttsSessionRef.current?.stop();
+        ttsSessionRef.current = null;
+        setTtsState('idle');
+    };
+
     return (
         <div className="flex gap-2 flex-col">
             <div className="w-[200px]">
@@ -79,17 +89,25 @@ export default function TextToSpeech() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
             />
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-2 items-center">
                 <Button onClick={handleTTS}>
                     {ttsState === 'buffering' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                     ) : ttsState === 'playing' ? (
                         <AudioWave className="h-5 w-5" />
+                    ) : ttsState === 'paused' ? (
+                        <Volume2 className="h-5 w-5" />
                     ) : (
                         <Volume2 className="h-5 w-5" />
                     )}
-                    {ttsState === 'buffering' ? "Loading..." : ttsState === 'playing' ? "Stop" : "Play"}
+                    {ttsState === 'buffering' ? "Loading..." : ttsState === 'playing' ? "Pause" : ttsState === 'paused' ? "Resume" : "Play"}
                 </Button>
+                {(ttsState === 'buffering' || ttsState === 'playing' || ttsState === 'paused') && (
+                    <Button variant="neutral" onClick={handleStopTTS}>
+                        <Square className="h-4 w-4 fill-current" />
+                        Stop
+                    </Button>
+                )}
             </div>
         </div>
     );

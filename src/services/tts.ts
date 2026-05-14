@@ -3,7 +3,6 @@ export const textToSpeech = async (text: string, languageId: string = "mon"): Pr
         throw new Error("Text is empty");
     }
 
-    // Custom TTS endpoint
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
     const endpoint = `${baseUrl}/tts`;
 
@@ -24,9 +23,7 @@ export const textToSpeech = async (text: string, languageId: string = "mon"): Pr
             throw new Error(`TTS failed: ${response.status} - ${errorText}`);
         }
 
-        // Get the audio data as a blob
         const blob = await response.blob();
-        // Create a URL for the blob
         return URL.createObjectURL(blob);
 
     } catch (error) {
@@ -45,63 +42,31 @@ export function streamTextToSpeech(
     }
 ) {
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    const url = `${baseUrl}/tts/stream`;
+    const params = new URLSearchParams({
+        text: text.trim(),
+        language_id: languageId,
+    });
+    const url = `${baseUrl}/tts/stream?${params.toString()}`;
 
-    let abortController = new AbortController();
     let audio: HTMLAudioElement | null = null;
-    let objectUrl: string | null = null;
 
     const cleanup = () => {
         if (audio) {
+            // Remove handlers BEFORE mutating src so spurious errors are ignored
             audio.onplay = null;
             audio.onended = null;
             audio.onerror = null;
             audio.pause();
-            // Don't set audio.src = "" — it fires a spurious MediaError
+            audio.src = "";
+            audio.removeAttribute("src");
             audio = null;
-        }
-        if (objectUrl) {
-            URL.revokeObjectURL(objectUrl);
-            objectUrl = null;
         }
     };
 
     const play = async () => {
-        abortController = new AbortController();
+        console.log("[TTS] Streaming via GET:", url);
 
-        console.log("[TTS] Fetching stream from:", url);
-
-        let response: Response;
-        try {
-            response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: text.trim(), language_id: languageId }),
-                signal: abortController.signal,
-            });
-        } catch (err) {
-            console.error("[TTS] Fetch threw:", err);
-            throw err;
-        }
-
-        console.log("[TTS] Response status:", response.status, response.statusText);
-
-        if (!response.ok) {
-            let body = "";
-            try {
-                body = await response.text();
-            } catch (_) {
-                /* ignore */
-            }
-            console.error("[TTS] Response not OK. Body:", body);
-            throw new Error(`TTS failed: ${response.status} ${response.statusText} — ${body}`);
-        }
-
-        const blob = await response.blob();
-        console.log("[TTS] Received blob:", blob.type, blob.size, "bytes");
-
-        objectUrl = URL.createObjectURL(blob);
-        audio = new Audio(objectUrl);
+        audio = new Audio(url);
 
         audio.onplay = () => {
             console.log("[TTS] Audio play event fired");
@@ -113,7 +78,9 @@ export function streamTextToSpeech(
             callbacks?.onEnd?.();
         };
         audio.onerror = () => {
-            console.error("[TTS] Audio error event:", audio?.error);
+            // Ignore errors caused by our own cleanup
+            if (!audio) return;
+            console.error("[TTS] Audio error event:", audio.error);
             cleanup();
             callbacks?.onError?.(new Error("Audio playback failed"));
         };
@@ -127,11 +94,20 @@ export function streamTextToSpeech(
         }
     };
 
+    const pause = () => {
+        audio?.pause();
+    };
+
+    const resume = async () => {
+        if (audio) {
+            await audio.play();
+        }
+    };
+
     const stop = () => {
-        abortController.abort();
         cleanup();
         callbacks?.onEnd?.();
     };
 
-    return { play, stop };
+    return { play, pause, resume, stop };
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X } from "lucide-react";
+import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X, Square } from "lucide-react";
 import { AudioWave } from "./audio-wave";
 import { useHistoryStore } from "@/store/history-store";
 
@@ -21,11 +21,11 @@ function Translator() {
     const [inputText, setInputText] = useState("");
     const [translatedText, setTranslatedText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing'>('idle');
+    const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing' | 'paused'>('idle');
     const [sourceLang, setSourceLang] = useState("en");
     const [targetLang, setTargetLang] = useState("mn");
     const outputRef = useRef<HTMLDivElement>(null);
-    const ttsSessionRef = useRef<{ stop: () => void } | null>(null);
+    const ttsSessionRef = useRef<{ pause: () => void; resume: () => void; stop: () => void } | null>(null);
 
     const { saveTranslation } = useHistoryStore();
     const hasResult = !!translatedText;
@@ -56,15 +56,7 @@ function Translator() {
         }
     };
 
-    const handleTTS = () => {
-        // Stop if already playing or buffering
-        if (ttsState !== 'idle') {
-            ttsSessionRef.current?.stop();
-            ttsSessionRef.current = null;
-            setTtsState('idle');
-            return;
-        }
-
+    const startTTS = () => {
         if (!translatedText) return;
 
         const langMap: Record<string, string> = {
@@ -99,6 +91,25 @@ function Translator() {
             ttsSessionRef.current = null;
             setTtsState('idle');
         });
+    };
+
+    const handleTTS = () => {
+        if (ttsState === 'idle') {
+            startTTS();
+        } else if (ttsState === 'playing') {
+            ttsSessionRef.current?.pause();
+            setTtsState('paused');
+        } else if (ttsState === 'paused') {
+            ttsSessionRef.current?.resume();
+            setTtsState('playing');
+        }
+        // buffering: handled by stop button
+    };
+
+    const handleStopTTS = () => {
+        ttsSessionRef.current?.stop();
+        ttsSessionRef.current = null;
+        setTtsState('idle');
     };
 
     const handleCopy = () => {
@@ -256,10 +267,22 @@ function Translator() {
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : ttsState === 'playing' ? (
                                 <AudioWave className="h-4 w-4" />
+                            ) : ttsState === 'paused' ? (
+                                <Volume2 className="h-4 w-4" />
                             ) : (
                                 <Volume2 className="h-4 w-4" />
                             )}
                         </Button>
+                        {(ttsState === 'buffering' || ttsState === 'playing' || ttsState === 'paused') && (
+                            <Button
+                                variant="neutral"
+                                size="icon"
+                                onClick={handleStopTTS}
+                                className="h-8 w-8"
+                            >
+                                <Square className="h-3 w-3 fill-current" />
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>

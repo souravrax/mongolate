@@ -79,20 +79,20 @@ async def tts(req: TTSRequest):
     return StreamingResponse(buffer, media_type="audio/mpeg", headers=headers)
 
 
-@app.post("/tts/stream")
-async def tts_stream(req: TTSRequest):
-    if not req.text or not req.text.strip():
-        return {"error": "text required"}
+@app.get("/tts/stream")
+async def tts_stream(text: str, language_id: str = "mon"):
+    if not text or not text.strip():
+        raise HTTPException(status_code=400, detail="text required")
 
-    voice = VOICE_MAP.get(req.language_id.lower())
+    voice = VOICE_MAP.get(language_id.lower())
     if not voice:
         raise HTTPException(
             status_code=400,
-            detail=f"Language '{req.language_id}' is not supported."
+            detail=f"Language '{language_id}' is not supported."
         )
 
     try:
-        communicate = edge_tts.Communicate(req.text, voice)
+        communicate = edge_tts.Communicate(text, voice)
 
         async def generate():
             async for chunk in communicate.stream():
