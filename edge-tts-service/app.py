@@ -14,6 +14,7 @@ app = FastAPI(title="MS Edge TTS")
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://translator.souravrax.com",
+    "https://mongolate.vercel.app"
 ]
 
 app.add_middleware(
