@@ -106,7 +106,13 @@ async def translate(req: TranslateRequest):
             resp.raise_for_status()
             data = resp.json()
 
-        translated = data[0][0][0]
+        # Google Translate returns segments as data[0] = [[translated, original, ...], ...]
+        # Join all translated segments, preserving newlines from the original structure
+        segments = []
+        for item in data[0]:
+            if isinstance(item, list) and len(item) > 0:
+                segments.append(item[0])
+        translated = "".join(segments)
         return {"translated": translated}
 
     except httpx.HTTPError as e:

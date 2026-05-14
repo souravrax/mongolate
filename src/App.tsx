@@ -22,9 +22,8 @@ function App() {
   };
 
   return (
-    <div className="h-[100dvh] flex flex-col font-sans bg-background overflow-hidden">
-      {/* Fixed Header */}
-      <header className="shrink-0 z-40 bg-background border-b-2 border-border">
+    <div className="h-[100dvh] font-google flex flex-col bg-background overflow-hidden">
+      <header className="shrink-0 z-40 bg-background">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-1.5 rounded-base bg-main border-2 border-border shadow-shadow">
@@ -41,8 +40,7 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content — fills remaining height */}
-      <main className="flex-1 min-h-0 max-w-2xl mx-auto w-full p-2">
+      <main className="flex-1 min-h-0 max-w-2xl mx-auto w-full px-2 py-1">
         <Translator />
       </main>
 
