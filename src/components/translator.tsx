@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X, Square } from "lucide-react";
+import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X } from "lucide-react";
+import { AudioWave } from "./audio-wave";
 import { useHistoryStore } from "@/store/history-store";
 
 const LANGUAGES = [
@@ -254,7 +255,7 @@ function Translator() {
                             {ttsState === 'buffering' ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : ttsState === 'playing' ? (
-                                <Square className="h-4 w-4 fill-current" />
+                                <AudioWave className="h-4 w-4" />
                             ) : (
                                 <Volume2 className="h-4 w-4" />
                             )}

@@ -3,7 +3,8 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { Loader2, Volume2, Square } from "lucide-react";
+import { Loader2, Volume2 } from "lucide-react";
+import { AudioWave } from "./audio-wave";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const LANGUAGES = [
@@ -83,7 +84,7 @@ export default function TextToSpeech() {
                     {ttsState === 'buffering' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                     ) : ttsState === 'playing' ? (
-                        <Square className="h-5 w-5 fill-current" />
+                        <AudioWave className="h-5 w-5" />
                     ) : (
                         <Volume2 className="h-5 w-5" />
                     )}
