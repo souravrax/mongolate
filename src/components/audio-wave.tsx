@@ -13,7 +13,7 @@ export function AudioWave({ className, barCount = 4, color }: AudioWaveProps) {
                 <span
                     key={i}
                     className={cn(
-                        "w-[3px] rounded-full animate-wave",
+                        "w-[3px] h-1 rounded-full animate-wave",
                         color || "bg-current"
                     )}
                     style={{

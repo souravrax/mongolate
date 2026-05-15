@@ -14,12 +14,13 @@ export default function TextToSpeech() {
     const [selectedLang, setSelectedLang] = useState("en");
     const ttsSessionRef = useRef<{ pause: () => void; resume: () => void; stop: () => void } | null>(null);
 
-    const { getVoiceForLanguage } = useVoiceStore();
+    const voiceMap = useVoiceStore((state) => state.voiceMap);
+    const voices = useVoiceStore((state) => state.voices);
 
     const startTTS = () => {
         if (!inputText.trim()) return;
 
-        const voice = getVoiceForLanguage(selectedLang);
+        const voice = voiceMap[selectedLang] || voices[selectedLang]?.default || "";
 
         setTtsState('buffering');
 
@@ -93,7 +94,7 @@ export default function TextToSpeech() {
                     {ttsState === 'buffering' ? "Loading..." : ttsState === 'playing' ? "Pause" : ttsState === 'paused' ? "Resume" : "Play"}
                 </Button>
                 {(ttsState === 'buffering' || ttsState === 'playing' || ttsState === 'paused') && (
-                    <Button variant="neutral" onClick={handleStopTTS}>
+                    <Button variant="outline" onClick={handleStopTTS}>
                         <Square className="h-4 w-4 fill-current" />
                         Stop
                     </Button>
