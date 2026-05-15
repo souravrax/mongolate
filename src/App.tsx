@@ -40,7 +40,7 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 max-w-2xl mx-auto w-full px-2 py-1">
+      <main className="flex-1 min-h-0 max-w-2xl mx-auto w-full px-2">
         <Translator />
       </main>
 

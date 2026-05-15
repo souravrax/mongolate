@@ -92,7 +92,6 @@ export function LanguageDrawer({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setQuery(e.target.value)
             }
-            autoFocus
           />
         </div>
 
