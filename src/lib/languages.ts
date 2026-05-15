@@ -26,7 +26,7 @@ export const LANGUAGE_META: Record<string, { name: string; flag: string }> = {
     pt: { name: "Portuguese", flag: "🇧🇷" },
     it: { name: "Italian", flag: "🇮🇹" },
     hi: { name: "Hindi", flag: "🇮🇳" },
-    bn: { name: "Bengali", flag: "🇧🇩" },
+    bn: { name: "Bengali", flag: "🇮🇳" },
     ta: { name: "Tamil", flag: "🇮🇳" },
     te: { name: "Telugu", flag: "🇮🇳" },
     ml: { name: "Malayalam", flag: "🇮🇳" },
