@@ -10,7 +10,7 @@ import {
   DrawerTrigger,
   DrawerClose,
 } from "@/components/ui/drawer";
-import { Globe, Search, X, Check } from "lucide-react";
+import { Globe, X, Check } from "lucide-react";
 import { LANGUAGE_META, getLanguageName } from "@/lib/languages";
 import { Input } from "./ui/input";
 
