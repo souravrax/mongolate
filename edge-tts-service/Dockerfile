@@ -20,6 +20,7 @@ RUN uv sync --no-dev --no-install-project
 
 # Copy application code
 COPY app.py ./
+COPY voices.py ./
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash appuser \

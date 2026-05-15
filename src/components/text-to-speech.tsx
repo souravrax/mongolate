@@ -5,28 +5,25 @@ import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Loader2, Volume2, Square } from "lucide-react";
 import { AudioWave } from "./audio-wave";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const LANGUAGES = [
-    { id: "mon", name: "Mongolian" },
-    { id: "eng", name: "English" },
-    { id: "tha", name: "Thai" },
-    { id: "ben", name: "Bengali" },
-    { id: "hin", name: "Hindi" },
-];
+import { LanguageDrawer } from "./language-drawer";
+import { useVoiceStore } from "@/store/voice-store";
 
 export default function TextToSpeech() {
     const [inputText, setInputText] = useState("");
     const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing' | 'paused'>('idle');
-    const [selectedLang, setSelectedLang] = useState("mon");
+    const [selectedLang, setSelectedLang] = useState("en");
     const ttsSessionRef = useRef<{ pause: () => void; resume: () => void; stop: () => void } | null>(null);
+
+    const { getVoiceForLanguage } = useVoiceStore();
 
     const startTTS = () => {
         if (!inputText.trim()) return;
 
+        const voice = getVoiceForLanguage(selectedLang);
+
         setTtsState('buffering');
 
-        const session = streamTextToSpeech(inputText, selectedLang, {
+        const session = streamTextToSpeech(inputText, selectedLang, voice, {
             onPlay: () => setTtsState('playing'),
             onEnd: () => {
                 ttsSessionRef.current = null;
@@ -70,18 +67,11 @@ export default function TextToSpeech() {
     return (
         <div className="flex gap-2 flex-col">
             <div className="w-[200px]">
-                <Select value={selectedLang} onValueChange={setSelectedLang}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select Language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {LANGUAGES.map((lang) => (
-                            <SelectItem key={lang.id} value={lang.id}>
-                                {lang.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <LanguageDrawer
+                    selectedLang={selectedLang}
+                    onSelect={setSelectedLang}
+                    label="Language"
+                />
             </div>
             <Textarea
                 placeholder="Enter text to convert to speech..."

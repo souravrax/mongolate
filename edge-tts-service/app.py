@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 from starlette.middleware.cors import CORSMiddleware
 
+from voices import VOICES, ALL_VOICE_NAMES
+
 app = FastAPI(title="MS Edge TTS")
 
 # === Configure allowed origins ===
@@ -26,19 +28,27 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
-# Map language IDs to MS Edge TTS neural voices
-VOICE_MAP = {
-    "mon": "mn-MN-YesuiNeural",
-    "mn":  "mn-MN-YesuiNeural",
-    "eng": "en-US-AriaNeural",
-    "en":  "en-US-AriaNeural",
-    "tha": "th-TH-PremwadeeNeural",
-    "th":  "th-TH-PremwadeeNeural",
-    "ben": "bn-IN-TanishaaNeural",
-    "bn":  "bn-IN-TanishaaNeural",
-    "hin": "hi-IN-MadhurNeural",
-    "hi":  "hi-IN-MadhurNeural",
-}
+
+def resolve_voice(language_id: str, voice: str | None = None) -> str:
+    """Resolve a language_id + optional voice name into a valid voice string."""
+    lang = language_id.lower()
+    lang_data = VOICES.get(lang)
+    if not lang_data:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Language '{language_id}' is not supported."
+        )
+
+    if voice:
+        voice_name = voice.strip()
+        if voice_name in ALL_VOICE_NAMES:
+            return voice_name
+        raise HTTPException(
+            status_code=400,
+            detail=f"Voice '{voice}' is not supported."
+        )
+
+    return lang_data["default"]
 
 
 @app.get("/")
@@ -46,9 +56,39 @@ async def root():
     return {"message": "MS Edge TTS API is running"}
 
 
+@app.get("/voices")
+async def list_all_voices():
+    """Return all supported languages with their available voices."""
+    return {
+        lang_id: {
+            "default": data["default"],
+            "voices": data["voices"],
+        }
+        for lang_id, data in VOICES.items()
+    }
+
+
+@app.get("/voices/{language_id}")
+async def list_language_voices(language_id: str):
+    """Return voices for a specific language."""
+    lang = language_id.lower()
+    data = VOICES.get(lang)
+    if not data:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Language '{language_id}' is not supported."
+        )
+    return {
+        "language_id": lang,
+        "default": data["default"],
+        "voices": data["voices"],
+    }
+
+
 class TTSRequest(BaseModel):
     text: str
-    language_id: str = Field(default="mon", description="Language ID (e.g., 'mon', 'eng')")
+    language_id: str = Field(default="mon", description="Language ID (e.g., 'en', 'mn')")
+    voice: str | None = Field(default=None, description="Optional voice name (e.g., 'en-US-GuyNeural')")
 
 
 @app.post("/tts")
@@ -56,12 +96,7 @@ async def tts(req: TTSRequest):
     if not req.text or not req.text.strip():
         return {"error": "text required"}
 
-    voice = VOICE_MAP.get(req.language_id.lower())
-    if not voice:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Language '{req.language_id}' is not supported."
-        )
+    voice = resolve_voice(req.language_id, req.voice)
 
     try:
         communicate = edge_tts.Communicate(req.text, voice)
@@ -80,19 +115,18 @@ async def tts(req: TTSRequest):
 
 
 @app.get("/tts/stream")
-async def tts_stream(text: str, language_id: str = "mon"):
+async def tts_stream(
+    text: str,
+    language_id: str = "mon",
+    voice: str | None = None,
+):
     if not text or not text.strip():
         raise HTTPException(status_code=400, detail="text required")
 
-    voice = VOICE_MAP.get(language_id.lower())
-    if not voice:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Language '{language_id}' is not supported."
-        )
+    resolved_voice = resolve_voice(language_id, voice)
 
     try:
-        communicate = edge_tts.Communicate(text, voice)
+        communicate = edge_tts.Communicate(text, resolved_voice)
 
         async def generate():
             async for chunk in communicate.stream():

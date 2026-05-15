@@ -3,19 +3,12 @@ import { translateText } from "@/services/translate";
 import { streamTextToSpeech } from "@/services/tts";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X, Square } from "lucide-react";
 import { AudioWave } from "./audio-wave";
+import { LanguageDrawer } from "./language-drawer";
 import { useHistoryStore } from "@/store/history-store";
-
-const LANGUAGES = [
-    { id: "en", name: "English" },
-    { id: "mn", name: "Mongolian" },
-    { id: "th", name: "Thai" },
-    { id: "bn", name: "Bengali" },
-    { id: "hi", name: "Hindi" },
-];
+import { useVoiceStore } from "@/store/voice-store";
 
 function Translator() {
     const [inputText, setInputText] = useState("");
@@ -56,21 +49,16 @@ function Translator() {
         }
     };
 
+    const { getVoiceForLanguage } = useVoiceStore();
+
     const startTTS = () => {
         if (!translatedText) return;
 
-        const langMap: Record<string, string> = {
-            'en': 'eng',
-            'mn': 'mon',
-            'th': 'tha',
-            'bn': 'ben',
-            'hi': 'hin'
-        };
-        const mappedLang = langMap[targetLang] || targetLang;
+        const voice = getVoiceForLanguage(targetLang);
 
         setTtsState('buffering');
 
-        const session = streamTextToSpeech(translatedText, mappedLang, {
+        const session = streamTextToSpeech(translatedText, targetLang, voice, {
             onPlay: () => setTtsState('playing'),
             onEnd: () => {
                 ttsSessionRef.current = null;
@@ -166,18 +154,12 @@ function Translator() {
                     {/* Language bar */}
                     <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/50">
                         <div className="flex-1">
-                            <Select value={sourceLang} onValueChange={setSourceLang}>
-                                <SelectTrigger className="border-0 bg-transparent shadow-none font-semibold text-foreground focus:ring-0 px-0 h-8">
-                                    <SelectValue placeholder="Detect language" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {LANGUAGES.map((lang) => (
-                                        <SelectItem key={lang.id} value={lang.id}>
-                                            {lang.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <LanguageDrawer
+                                selectedLang={sourceLang}
+                                onSelect={setSourceLang}
+                                label="Source Language"
+                                align="left"
+                            />
                         </div>
 
                         <Button variant="neutral" size="icon" onClick={handleSwapLanguages} className="shrink-0 h-8 w-8">
@@ -185,18 +167,12 @@ function Translator() {
                         </Button>
 
                         <div className="flex-1">
-                            <Select value={targetLang} onValueChange={setTargetLang}>
-                                <SelectTrigger className="border-0 bg-transparent shadow-none font-semibold text-foreground focus:ring-0 px-0 h-8 justify-end">
-                                    <SelectValue placeholder="Select language" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {LANGUAGES.map((lang) => (
-                                        <SelectItem key={lang.id} value={lang.id}>
-                                            {lang.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <LanguageDrawer
+                                selectedLang={targetLang}
+                                onSelect={setTargetLang}
+                                label="Target Language"
+                                align="right"
+                            />
                         </div>
                     </div>
 

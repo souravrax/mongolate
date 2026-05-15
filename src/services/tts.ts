@@ -1,4 +1,8 @@
-export const textToSpeech = async (text: string, languageId: string = "mon"): Promise<string> => {
+export const textToSpeech = async (
+    text: string,
+    languageId: string = "mon",
+    voiceName?: string
+): Promise<string> => {
     if (!text.trim()) {
         throw new Error("Text is empty");
     }
@@ -14,7 +18,8 @@ export const textToSpeech = async (text: string, languageId: string = "mon"): Pr
             },
             body: JSON.stringify({
                 text: text,
-                language_id: languageId
+                language_id: languageId,
+                voice: voiceName,
             })
         });
 
@@ -35,6 +40,7 @@ export const textToSpeech = async (text: string, languageId: string = "mon"): Pr
 export function streamTextToSpeech(
     text: string,
     languageId: string = "mon",
+    voiceName?: string,
     callbacks?: {
         onPlay?: () => void;
         onEnd?: () => void;
@@ -46,63 +52,44 @@ export function streamTextToSpeech(
         text: text.trim(),
         language_id: languageId,
     });
+    if (voiceName) {
+        params.set("voice", voiceName);
+    }
     const url = `${baseUrl}/tts/stream?${params.toString()}`;
 
     let audio: HTMLAudioElement | null = null;
 
     const cleanup = () => {
         if (audio) {
-            // Remove handlers BEFORE mutating src so spurious errors are ignored
             audio.onplay = null;
             audio.onended = null;
             audio.onerror = null;
             audio.pause();
-            audio.src = "";
-            audio.removeAttribute("src");
             audio = null;
         }
     };
 
     const play = async () => {
-        console.log("[TTS] Streaming via GET:", url);
-
         audio = new Audio(url);
 
         audio.onplay = () => {
-            console.log("[TTS] Audio play event fired");
             callbacks?.onPlay?.();
         };
         audio.onended = () => {
-            console.log("[TTS] Audio ended");
             cleanup();
             callbacks?.onEnd?.();
         };
         audio.onerror = () => {
-            // Ignore errors caused by our own cleanup
             if (!audio) return;
-            console.error("[TTS] Audio error event:", audio.error);
             cleanup();
             callbacks?.onError?.(new Error("Audio playback failed"));
         };
 
-        try {
-            await audio.play();
-        } catch (err) {
-            console.error("[TTS] audio.play() threw:", err);
-            cleanup();
-            throw err;
-        }
+        await audio.play();
     };
 
-    const pause = () => {
-        audio?.pause();
-    };
-
-    const resume = async () => {
-        if (audio) {
-            await audio.play();
-        }
-    };
+    const pause = () => audio?.pause();
+    const resume = () => audio?.play();
 
     const stop = () => {
         cleanup();
