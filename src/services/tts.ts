@@ -1,17 +1,16 @@
+import { apiBaseUrl } from "@/services/api";
+
 export const textToSpeech = async (
     text: string,
-    languageId: string = "mon",
+    languageId: string = "mn",
     voiceName?: string
 ): Promise<string> => {
     if (!text.trim()) {
         throw new Error("Text is empty");
     }
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    const endpoint = `${baseUrl}/tts`;
-
     try {
-        const response = await fetch(endpoint, {
+        const response = await fetch(`${apiBaseUrl}/tts`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -39,7 +38,7 @@ export const textToSpeech = async (
 
 export function streamTextToSpeech(
     text: string,
-    languageId: string = "mon",
+    languageId: string = "mn",
     voiceName?: string,
     callbacks?: {
         onPlay?: () => void;
@@ -47,7 +46,6 @@ export function streamTextToSpeech(
         onError?: (err: Error) => void;
     }
 ) {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
     const params = new URLSearchParams({
         text: text.trim(),
         language_id: languageId,
@@ -55,7 +53,7 @@ export function streamTextToSpeech(
     if (voiceName) {
         params.set("voice", voiceName);
     }
-    const url = `${baseUrl}/tts/stream?${params.toString()}`;
+    const url = `${apiBaseUrl}/tts/stream?${params.toString()}`;
 
     let audio: HTMLAudioElement | null = null;
 

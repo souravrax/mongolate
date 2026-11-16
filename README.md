@@ -1,4 +1,17 @@
-# React + TypeScript + Vite
+# Mongolate
+
+Mongolate uses Google Translate for translation and Microsoft Edge TTS for speech.
+
+## Run locally
+
+Start FastAPI with `cd edge-tts-service && uv run uvicorn app:app --reload`.
+In a second terminal, run `pnpm install --frozen-lockfile` and `pnpm dev` from the repository root. Vite proxies `/api` to FastAPI on port 8000. Set `VITE_API_BASE_URL` in `.env.local` to use a different backend during development.
+
+## Deploy to Vercel
+
+Use the repository root as the Vercel project root. `vercel.json` builds the Vite frontend and `edge-tts-service/` together using Vercel Services. Both preview and production builds call `/api` on their own deployment domain. Smoke test `GET /api/voices`, a translation, and Mongolian audio playback on the preview before promoting it.
+
+## Frontend tooling
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

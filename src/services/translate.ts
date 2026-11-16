@@ -1,3 +1,5 @@
+import { apiBaseUrl } from "@/services/api";
+
 export interface TranslationResponse {
     translated: string;
 }
@@ -6,12 +8,7 @@ export const translateText = async (text: string, sourceLang: string = "en", tar
     if (!text.trim()) return "";
 
     try {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL;
-        if (!baseUrl) {
-            throw new Error("VITE_ENV is not defined");
-        }
-
-        const response = await fetch(`${baseUrl}/translate`, {
+        const response = await fetch(`${apiBaseUrl}/translate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { FALLBACK_VOICES, getDefaultVoice, type Voice } from "@/lib/languages";
+import { apiBaseUrl } from "@/services/api";
 
 interface VoiceData {
     default: string;
@@ -32,13 +33,10 @@ export const useVoiceStore = create<VoiceStoreState>()(
             error: null,
 
             fetchVoices: async () => {
-                const baseUrl = import.meta.env.VITE_API_BASE_URL;
-                if (!baseUrl) return;
-
                 set({ isLoading: true, error: null });
 
                 try {
-                    const response = await fetch(`${baseUrl}/voices`);
+                    const response = await fetch(`${apiBaseUrl}/voices`);
                     if (!response.ok) {
                         throw new Error(`Failed to fetch voices: ${response.status}`);
                     }

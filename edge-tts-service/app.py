@@ -2,7 +2,7 @@
 import io
 import httpx
 import edge_tts
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -11,6 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 from voices import VOICES, ALL_VOICE_NAMES
 
 app = FastAPI(title="MS Edge TTS")
+router = APIRouter()
 
 # === Configure allowed origins ===
 ALLOWED_ORIGINS = [
@@ -32,6 +33,8 @@ app.add_middleware(
 def resolve_voice(language_id: str, voice: str | None = None) -> str:
     """Resolve a language_id + optional voice name into a valid voice string."""
     lang = language_id.lower()
+    if lang == "mon":
+        lang = "mn"
     lang_data = VOICES.get(lang)
     if not lang_data:
         raise HTTPException(
@@ -51,12 +54,12 @@ def resolve_voice(language_id: str, voice: str | None = None) -> str:
     return lang_data["default"]
 
 
-@app.get("/")
+@router.get("/")
 async def root():
     return {"message": "MS Edge TTS API is running"}
 
 
-@app.get("/voices")
+@router.get("/voices")
 async def list_all_voices():
     """Return all supported languages with their available voices."""
     return {
@@ -68,7 +71,7 @@ async def list_all_voices():
     }
 
 
-@app.get("/voices/{language_id}")
+@router.get("/voices/{language_id}")
 async def list_language_voices(language_id: str):
     """Return voices for a specific language."""
     lang = language_id.lower()
@@ -87,11 +90,11 @@ async def list_language_voices(language_id: str):
 
 class TTSRequest(BaseModel):
     text: str
-    language_id: str = Field(default="mon", description="Language ID (e.g., 'en', 'mn')")
+    language_id: str = Field(default="mn", description="Language ID (e.g., 'en', 'mn')")
     voice: str | None = Field(default=None, description="Optional voice name (e.g., 'en-US-GuyNeural')")
 
 
-@app.post("/tts")
+@router.post("/tts")
 async def tts(req: TTSRequest):
     if not req.text or not req.text.strip():
         return {"error": "text required"}
@@ -114,10 +117,10 @@ async def tts(req: TTSRequest):
     return StreamingResponse(buffer, media_type="audio/mpeg", headers=headers)
 
 
-@app.get("/tts/stream")
+@router.get("/tts/stream")
 async def tts_stream(
     text: str,
-    language_id: str = "mon",
+    language_id: str = "mn",
     voice: str | None = None,
 ):
     if not text or not text.strip():
@@ -144,7 +147,7 @@ class TranslateRequest(BaseModel):
     source_lang: str = "auto"
 
 
-@app.post("/translate")
+@router.post("/translate")
 async def translate(req: TranslateRequest):
     if not req.text.strip():
         return {"error": "text required"}
@@ -178,3 +181,7 @@ async def translate(req: TranslateRequest):
         raise HTTPException(status_code=502, detail=f"Translate upstream error: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+app.include_router(router)
+app.include_router(router, prefix="/api", include_in_schema=False)
