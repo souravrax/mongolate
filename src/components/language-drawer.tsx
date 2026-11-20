@@ -12,13 +12,14 @@ import {
 } from "@/components/ui/drawer";
 import { Globe, X, Check } from "lucide-react";
 import { LANGUAGE_META, getLanguageName } from "@/lib/languages";
+import { SelectorButton } from "./ui/selector-button";
 import { Input } from "./ui/input";
 
 interface LanguageDrawerProps {
   selectedLang: string;
   onSelect: (langId: string) => void;
   label?: string;
-  align?: "left" | "right";
+  className?: string;
   excludeLangs?: string[];
 }
 
@@ -26,7 +27,7 @@ export function LanguageDrawer({
   selectedLang,
   onSelect,
   label = "Language",
-  align = "left",
+  className,
   excludeLangs = [],
 }: LanguageDrawerProps) {
   const [open, setOpen] = useState(false);
@@ -56,14 +57,9 @@ export function LanguageDrawer({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button
-          variant="ghost"
-          className={`h-8 w-full px-0 font-semibold text-foreground hover:bg-transparent hover:translate-x-0 hover:translate-y-0 ${
-            align === "right" ? "justify-end" : "justify-start"
-          }`}
-        >
-          <span className="truncate">{selectedName}</span>
-        </Button>
+        <SelectorButton className={className} aria-label={`${label}: ${selectedName}`}>
+          {selectedName}
+        </SelectorButton>
       </DrawerTrigger>
       <DrawerContent className="h-[85vh]">
         <DrawerHeader className="flex flex-row! items-center justify-between pb-2">
@@ -77,7 +73,7 @@ export function LanguageDrawer({
             </DrawerDescription>
           </div>
           <DrawerClose asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Close language picker">
               <X className="h-4 w-4" />
             </Button>
           </DrawerClose>
@@ -86,6 +82,7 @@ export function LanguageDrawer({
         {/* Search */}
         <div className="px-4 pb-3">
           <Input
+            className="h-12 text-base"
             type="text"
             placeholder="Search language..."
             value={query}
@@ -103,10 +100,12 @@ export function LanguageDrawer({
                 const isSelected = lang.id === selectedLang;
 
                 return (
-                  <div
+                  <button
+                    type="button"
+                    aria-pressed={isSelected}
                     key={lang.id}
                     onClick={() => handleSelectLanguage(lang.id)}
-                    className={`cursor-pointer border rounded-xl p-3 transition-colors ${
+                    className={`w-full min-h-14 text-left cursor-pointer border rounded-2xl p-4 transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                       isSelected
                         ? "bg-accent"
                         : "hover:bg-accent"
@@ -117,7 +116,7 @@ export function LanguageDrawer({
                         {lang.flag && (
                           <span className="text-lg">{lang.flag}</span>
                         )}
-                        <div className="font-medium text-sm">
+                        <div className="font-medium text-base">
                           {lang.name}
                         </div>
                       </div>
@@ -125,7 +124,7 @@ export function LanguageDrawer({
                         <Check className="h-4 w-4 text-primary" />
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
               {languages.length === 0 && (

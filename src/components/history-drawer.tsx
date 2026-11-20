@@ -7,6 +7,7 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
+  DrawerDescription,
   DrawerTrigger,
   DrawerClose,
 } from "@/components/ui/drawer";
@@ -50,9 +51,9 @@ export function HistoryDrawer({ onSelectItem }: HistoryDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button variant="ghost" className="min-w-12 gap-2 px-3 sm:px-4" aria-label="Translation history">
           <History className="h-5 w-5" />
-          <span className="sr-only">History</span>
+          <span className="hidden sm:inline">History</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[85vh]">
@@ -63,19 +64,20 @@ export function HistoryDrawer({ onSelectItem }: HistoryDrawerProps) {
           </DrawerTitle>
           <div className="flex items-center gap-2">
             {history.length > 0 && (
-              <Button variant="outline" size="sm" onClick={handleClear}>
+              <Button variant="outline" onClick={handleClear}>
                 <Trash2 className="h-4 w-4 mr-1" />
                 Clear
               </Button>
             )}
             <DrawerClose asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Close history">
                 <X className="h-4 w-4" />
               </Button>
             </DrawerClose>
           </div>
         </DrawerHeader>
 
+        <DrawerDescription className="sr-only">Select a previous translation to use it again.</DrawerDescription>
         <div className="px-4 pb-4 flex-1 overflow-hidden">
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2">
@@ -88,13 +90,13 @@ export function HistoryDrawer({ onSelectItem }: HistoryDrawerProps) {
                 {history.map((item) => (
                   <div
                     key={item.id}
-                    onClick={() => handleSelect(item)}
-                    className="cursor-pointer border rounded-xl hover:bg-accent transition-colors relative p-3"
+                    className="border rounded-2xl transition-colors relative p-4 pr-16"
                   >
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-6 w-6 absolute top-2 right-2"
+                      className="absolute top-2 right-2"
+                      aria-label="Delete translation"
                       onClick={(e) => handleDelete(item.id, e)}
                     >
                       <X className="h-3 w-3" />
@@ -103,16 +105,18 @@ export function HistoryDrawer({ onSelectItem }: HistoryDrawerProps) {
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         {item.sourceLang} → {item.targetLang}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-sm text-muted-foreground">
                         {formatDate(item.timestamp)}
                       </span>
                     </div>
-                    <p className="text-sm font-medium line-clamp-2 text-foreground">
-                      {item.sourceText}
-                    </p>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {item.translatedText}
-                    </p>
+                    <button type="button" onClick={() => handleSelect(item)} className="block w-full rounded-lg text-left focus-visible:outline-2 focus-visible:outline-ring">
+                      <p className="text-base font-medium line-clamp-2 text-foreground">
+                        {item.sourceText}
+                      </p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {item.translatedText}
+                      </p>
+                    </button>
                   </div>
                 ))}
               </div>

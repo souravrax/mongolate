@@ -3,19 +3,16 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
 
   const toggle = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme(document.documentElement.classList.contains("dark") ? "light" : "dark");
   };
 
   return (
-    <Button variant="outline" size="icon" onClick={toggle}>
-      {theme === "dark" ? (
-        <Sun className="h-5 w-5" />
-      ) : (
-        <Moon className="h-5 w-5" />
-      )}
+    <Button variant="ghost" size="icon" onClick={toggle}>
+      <Sun className="hidden size-5 dark:block" aria-hidden="true" />
+      <Moon className="size-5 dark:hidden" aria-hidden="true" />
       <span className="sr-only">Toggle theme</span>
     </Button>
   );

@@ -6,9 +6,11 @@ import {
     DrawerContent,
     DrawerHeader,
     DrawerTitle,
+    DrawerDescription,
     DrawerTrigger,
     DrawerClose,
 } from "@/components/ui/drawer";
+import { SelectorButton } from "./ui/selector-button";
 import { X, Check } from "lucide-react";
 import { useVoiceStore } from "@/store/voice-store";
 import { getVoiceLabel, getDefaultVoice } from "@/lib/languages";
@@ -16,12 +18,12 @@ import { VoiceUserIcon } from "@/components/icons/voice-user-icon";
 
 interface VoiceDrawerProps {
     lang: string;
-    align?: "left" | "right";
+    className?: string;
 }
 
 export function VoiceDrawer({
     lang,
-    align = "right",
+    className,
 }: VoiceDrawerProps) {
     const [open, setOpen] = useState(false);
     const voiceMap = useVoiceStore((state) => state.voiceMap);
@@ -41,15 +43,9 @@ export function VoiceDrawer({
     return (
         <Drawer open={open} onOpenChange={setOpen}>
             <DrawerTrigger asChild>
-                <Button
-                    variant="ghost"
-                    className={`h-8 px-0 font-semibold text-foreground hover:bg-transparent hover:translate-x-0 hover:translate-y-0 ${
-                        align === "right" ? "justify-end" : "justify-start"
-                    }`}
-                >
-                    <VoiceUserIcon className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                    <span className="truncate text-sm">{selectedVoiceLabel}</span>
-                </Button>
+                <SelectorButton className={className} aria-label={`Voice: ${selectedVoiceLabel}`}>
+                    {selectedVoiceLabel}
+                </SelectorButton>
             </DrawerTrigger>
             <DrawerContent className="h-[70vh]">
                 <DrawerHeader className="flex items-center justify-between pb-2">
@@ -58,11 +54,13 @@ export function VoiceDrawer({
                         Select Voice
                     </DrawerTitle>
                     <DrawerClose asChild>
-                        <Button variant="outline" size="icon">
+                        <Button variant="ghost" size="icon" aria-label="Close voice picker">
                             <X className="h-4 w-4" />
                         </Button>
                     </DrawerClose>
                 </DrawerHeader>
+
+                <DrawerDescription className="sr-only">Choose a voice for the translated text.</DrawerDescription>
 
                 {/* Voice list */}
                 <div className="px-4 pb-4 flex-1 overflow-hidden">
@@ -72,10 +70,12 @@ export function VoiceDrawer({
                                 langVoices.map((voice) => {
                                     const isVoiceSelected = voice.name === currentVoice;
                                     return (
-                                        <div
+                                        <button
+                                            type="button"
+                                            aria-pressed={isVoiceSelected}
                                             key={voice.name}
                                             onClick={() => handleVoiceSelect(voice.name)}
-                                            className={`cursor-pointer border rounded-xl p-3 transition-colors ${
+                                            className={`w-full min-h-14 text-left cursor-pointer border rounded-2xl p-4 transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                                                 isVoiceSelected
                                                     ? "border-primary bg-accent"
                                                     : "hover:bg-accent"
@@ -85,7 +85,7 @@ export function VoiceDrawer({
                                                 <div className="flex items-center gap-2">
                                                     <VoiceUserIcon className="h-3.5 w-3.5 text-muted-foreground" />
                                                     <span className="text-sm font-medium">{voice.label}</span>
-                                                    <span className="text-[10px] text-muted-foreground capitalize">
+                                                    <span className="text-sm text-muted-foreground capitalize">
                                                         {voice.gender}
                                                     </span>
                                                 </div>
@@ -93,7 +93,7 @@ export function VoiceDrawer({
                                                     <Check className="h-4 w-4 text-primary" />
                                                 )}
                                             </div>
-                                        </div>
+                                        </button>
                                     );
                                 })
                             ) : (

@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/sonner";
-import { Languages } from "lucide-react";
 import Translator from "./components/translator";
 import { ThemeToggle } from "./components/theme-toggle";
 import { HistoryDrawer } from "./components/history-drawer";
@@ -10,10 +9,6 @@ function App() {
     sourceLang: string,
     targetLang: string,
   ) => {
-    // Force re-mount translator with new initial values
-    // A better approach would be lifting state, but for simplicity we'll just reload the page
-    // or use a more sophisticated state approach. Instead, let's use URL params or global event.
-    // For now, let's just use a global event on window.
     window.dispatchEvent(
       new CustomEvent("load-translation", {
         detail: { sourceText, sourceLang, targetLang },
@@ -22,25 +17,15 @@ function App() {
   };
 
   return (
-    <div className="h-[100dvh] font-google flex flex-col bg-background overflow-hidden">
-      <header className="shrink-0 z-40 bg-background">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-base bg-main text-primary">
-              <Languages className="w-5 h-5 text-main-foreground" />
-            </div>
-            <h1 className="text-xl font-instrument-serif font-semibold text-primary tracking-tight">
-              Mongolate
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <HistoryDrawer onSelectItem={handleHistorySelect} />
-            <ThemeToggle />
-          </div>
-        </div>
+    <div className="app-shell">
+      <header className="app-header">
+        <h1 className="wordmark">Mongolate</h1>
+        <nav className="flex items-center gap-1 sm:gap-3" aria-label="App controls">
+          <HistoryDrawer onSelectItem={handleHistorySelect} />
+          <ThemeToggle />
+        </nav>
       </header>
-
-      <main className="flex-1 min-h-0 max-w-2xl mx-auto w-full px-2">
+      <main className="app-main">
         <Translator />
       </main>
 

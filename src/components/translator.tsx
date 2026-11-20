@@ -4,286 +4,205 @@ import { streamTextToSpeech } from "@/services/tts";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Volume2, CopyIcon, ArrowRightLeft, X, Square } from "lucide-react";
-import { AudioWave } from "./audio-wave";
+import { Copy, ArrowRightLeft, X } from "lucide-react";
 import { LanguageDrawer } from "./language-drawer";
 import { VoiceDrawer } from "./voice-drawer";
+import { TranslationPanel } from "./translation-panel";
+import { TranslationActions, type SpeechState } from "./translation-actions";
 import { useHistoryStore } from "@/store/history-store";
 import { useVoiceStore } from "@/store/voice-store";
 import { getLanguageName } from "@/lib/languages";
 
 function Translator() {
-    const [inputText, setInputText] = useState("");
-    const [translatedText, setTranslatedText] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [ttsState, setTtsState] = useState<'idle' | 'buffering' | 'playing' | 'paused'>('idle');
-    const [sourceLang, setSourceLang] = useState("en");
-    const [targetLang, setTargetLang] = useState("mn");
-    const outputRef = useRef<HTMLDivElement>(null);
-    const ttsSessionRef = useRef<{ pause: () => void; resume: () => void; stop: () => void } | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [translatedText, setTranslatedText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [speechState, setSpeechState] = useState<SpeechState>("idle");
+  const [sourceLang, setSourceLang] = useState("en");
+  const [targetLang, setTargetLang] = useState("mn");
+  const speechRef = useRef<ReturnType<typeof streamTextToSpeech> | null>(null);
+  const requestRef = useRef(0);
+  const saveTranslation = useHistoryStore((state) => state.saveTranslation);
+  const voiceMap = useVoiceStore((state) => state.voiceMap);
+  const voices = useVoiceStore((state) => state.voices);
 
-    const { saveTranslation } = useHistoryStore();
-    const hasResult = !!translatedText;
+  const stopSpeech = () => {
+    speechRef.current?.stop();
+    speechRef.current = null;
+    setSpeechState("idle");
+  };
 
-    const handleTranslate = async () => {
-        if (!inputText.trim()) {
-            toast.error("Please enter some text to translate.");
-            return;
+  const invalidateResult = () => {
+    requestRef.current += 1;
+    setIsLoading(false);
+    stopSpeech();
+    setTranslatedText("");
+  };
+
+  const handleTranslate = async () => {
+    if (!inputText.trim() || isLoading) return;
+    stopSpeech();
+    const request = ++requestRef.current;
+    setIsLoading(true);
+    try {
+      const result = await translateText(inputText, sourceLang, targetLang);
+      if (request !== requestRef.current) return;
+      setTranslatedText(result);
+      saveTranslation({ sourceText: inputText.trim(), translatedText: result, sourceLang, targetLang });
+    } catch (error) {
+      if (request === requestRef.current) {
+        toast.error(error instanceof Error ? error.message : "Translation failed. Please try again.");
+      }
+    } finally {
+      if (request === requestRef.current) setIsLoading(false);
+    }
+  };
+
+  const handleSpeech = async () => {
+    if (speechState === "playing") {
+      speechRef.current?.pause();
+      setSpeechState("paused");
+      return;
+    }
+    if (speechState === "paused") {
+      const session = speechRef.current;
+      try {
+        await session?.resume();
+        if (session && speechRef.current === session) setSpeechState("playing");
+      } catch {
+        if (speechRef.current === session) {
+          stopSpeech();
+          toast.error("Could not resume speech. Please try again.");
         }
-
-        setIsLoading(true);
-        try {
-            const result = await translateText(inputText, sourceLang, targetLang);
-            setTranslatedText(result);
-
-            saveTranslation({
-                sourceText: inputText.trim(),
-                translatedText: result,
-                sourceLang,
-                targetLang,
-            });
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Translation failed. Please try again.");
-            console.error(error);
-        } finally {
-            setIsLoading(false);
+      }
+      return;
+    }
+    if (!translatedText || speechState === "buffering") return;
+    const voice = voiceMap[targetLang] || voices[targetLang]?.default;
+    setSpeechState("buffering");
+    const session = streamTextToSpeech(translatedText, targetLang, voice, {
+      onPlay: () => {
+        if (speechRef.current === session) setSpeechState("playing");
+      },
+      onEnd: () => {
+        if (speechRef.current === session) {
+          speechRef.current = null;
+          setSpeechState("idle");
         }
-    };
-
-    const voiceMap = useVoiceStore((state) => state.voiceMap);
-    const voices = useVoiceStore((state) => state.voices);
-
-    const startTTS = () => {
-        if (!translatedText) return;
-
-        const voice = voiceMap[targetLang] || voices[targetLang]?.default || "";
-
-        setTtsState('buffering');
-
-        const session = streamTextToSpeech(translatedText, targetLang, voice, {
-            onPlay: () => setTtsState('playing'),
-            onEnd: () => {
-                ttsSessionRef.current = null;
-                setTtsState('idle');
-            },
-            onError: (err) => {
-                console.error("[Translator] onError:", err);
-                toast.error("Failed to play speech.");
-                ttsSessionRef.current = null;
-                setTtsState('idle');
-            },
-        });
-
-        ttsSessionRef.current = session;
-
-        session.play().catch((err) => {
-            console.error("[Translator] session.play() error:", err);
-            ttsSessionRef.current = null;
-            setTtsState('idle');
-        });
-    };
-
-    const handleTTS = () => {
-        if (ttsState === 'idle') {
-            startTTS();
-        } else if (ttsState === 'playing') {
-            ttsSessionRef.current?.pause();
-            setTtsState('paused');
-        } else if (ttsState === 'paused') {
-            ttsSessionRef.current?.resume();
-            setTtsState('playing');
+      },
+      onError: () => {
+        if (speechRef.current === session) {
+          speechRef.current = null;
+          setSpeechState("idle");
+          toast.error("Failed to play speech. Please try again.");
         }
-        // buffering: handled by stop button
+      },
+    });
+    speechRef.current = session;
+    try {
+      await session.play();
+    } catch {
+      if (speechRef.current === session) {
+        stopSpeech();
+        toast.error("Failed to play speech. Please try again.");
+      }
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(translatedText);
+      toast.success("Translation copied");
+    } catch {
+      toast.error("Could not copy. Please select the text to copy it.");
+    }
+  };
+
+  const handleSwap = () => {
+    requestRef.current += 1;
+    setIsLoading(false);
+    stopSpeech();
+    setSourceLang(targetLang);
+    setTargetLang(sourceLang);
+    setInputText(translatedText || inputText);
+    setTranslatedText(translatedText ? inputText : "");
+  };
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const { detail } = event as CustomEvent<{ sourceText: string; sourceLang: string; targetLang: string }>;
+      requestRef.current += 1;
+      speechRef.current?.stop();
+      speechRef.current = null;
+      setSpeechState("idle");
+      setIsLoading(false);
+      setInputText(detail.sourceText);
+      setSourceLang(detail.sourceLang);
+      setTargetLang(detail.targetLang);
+      setTranslatedText("");
     };
-
-    const handleStopTTS = () => {
-        ttsSessionRef.current?.stop();
-        ttsSessionRef.current = null;
-        setTtsState('idle');
+    window.addEventListener("load-translation", handler);
+    return () => {
+      window.removeEventListener("load-translation", handler);
+      requestRef.current += 1;
+      speechRef.current?.stop();
     };
+  }, []);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(translatedText);
-        toast.success("Text copied to clipboard!");
-    };
-
-    const handleSwapLanguages = () => {
-        setSourceLang(targetLang);
-        setTargetLang(sourceLang);
-        setInputText(translatedText);
-        setTranslatedText(inputText);
-    };
-
-    const handleClear = () => {
-        setInputText("");
-        setTranslatedText("");
-    };
-
-    useEffect(() => {
-        const handler = (e: Event) => {
-            const custom = e as CustomEvent<{ sourceText: string; sourceLang: string; targetLang: string }>;
-            setInputText(custom.detail.sourceText);
-            setSourceLang(custom.detail.sourceLang);
-            setTargetLang(custom.detail.targetLang);
-            setTranslatedText("");
-        };
-        window.addEventListener("load-translation", handler);
-        return () => window.removeEventListener("load-translation", handler);
-    }, []);
-
-    return (
-        <div className="h-[calc(100dvh-3.5rem)] flex flex-col">
-            {/* Input section — shrinks when result appears */}
-            <div
-                className={`
-                    flex flex-col overflow-hidden
-                    transition-[flex] duration-500 ease-out
-                    ${hasResult ? "flex-[0_0_48%] min-h-0" : "flex-1 min-h-0"}
-                `}
-            >
-                {/* Textarea — fills the section and scrolls internally */}
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                    <Textarea
-                        placeholder="Enter text..."
-                        className="w-full h-full min-h-0 resize-none text-xl bg-transparent border-0 p-4 shadow-none focus-visible:ring-0 rounded-none placeholder:text-foreground/30"
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                    />
-                </div>
-
-                {/* Bottom toolbar */}
-                <div className="shrink-0 flex flex-col gap-0 bg-accent text-accent-foreground rounded-2xl">
-                    {/* Language bar */}
-                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/50">
-                        <div className="flex-1">
-                            <LanguageDrawer
-                                selectedLang={sourceLang}
-                                onSelect={setSourceLang}
-                                label="Source Language"
-                                align="left"
-                            />
-                        </div>
-
-                        <Button variant="outline" size="icon" onClick={handleSwapLanguages} className="shrink-0 h-8 w-8">
-                            <ArrowRightLeft className="h-3.5 w-3.5" />
-                        </Button>
-
-                        <div className="flex-1">
-                            <LanguageDrawer
-                                selectedLang={targetLang}
-                                onSelect={setTargetLang}
-                                label="Target Language"
-                                align="right"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Action bar */}
-                    <div className="flex items-center justify-between px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                            {inputText && (
-                                <Button variant="outline" size="icon" onClick={handleClear} className="h-8 w-8">
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
-                            <span className="text-xs text-foreground/40 font-medium tabular-nums">
-                                {inputText.length}
-                            </span>
-                        </div>
-                        <Button
-                            onClick={handleTranslate}
-                            disabled={isLoading || !inputText.trim()}
-                            size="sm"
-                            className="font-semibold px-5"
-                        >
-                            {isLoading ? (
-                                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                            ) : null}
-                            Translate
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Output section — slides up when ready */}
-            <div
-                ref={outputRef}
-                className={`
-                    flex flex-col overflow-hidden mt-2
-                    transition-all duration-500 ease-out
-                    ${hasResult ? "flex-[0_0_50%] min-h-0 opacity-100" : "flex-[0_0_0%] min-h-0 opacity-0 pointer-events-none"}
-                `}
-            >
-                {/* Output text — scrolls internally */}
-                <div className="flex-1 min-h-0 overflow-y-auto p-4">
-                    <p className="text-xl text-foreground leading-relaxed whitespace-pre-wrap">
-                        {translatedText}
-                    </p>
-                </div>
-
-                {/* Output toolbar */}
-                <div className="shrink-0 flex flex-col gap-0 bg-accent text-accent-foreground rounded-2xl">
-                    {/* Voice bar */}
-                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/50">
-                        <span className="text-xs font-semibold text-foreground/40 tracking-wider">
-                            {getLanguageName(targetLang)}
-                        </span>
-                        <VoiceDrawer
-                            lang={targetLang}
-                            align="right"
-                        />
-                    </div>
-
-                    {/* Action bar */}
-                    <div className="flex items-center justify-between px-4 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={handleCopy}
-                                className="h-8 w-8"
-                            >
-                                <CopyIcon className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleTTS}
-                                className="h-8 gap-1.5"
-                            >
-                                {ttsState === 'buffering' ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : ttsState === 'playing' ? (
-                                    <AudioWave className="h-4 w-4" />
-                                ) : (
-                                    <Volume2 className="h-4 w-4" />
-                                )}
-                                {ttsState === 'buffering'
-                                    ? "Loading..."
-                                    : ttsState === 'playing'
-                                    ? "Pause"
-                                    : ttsState === 'paused'
-                                    ? "Resume"
-                                    : "Listen"}
-                            </Button>
-                            {(ttsState === 'buffering' || ttsState === 'playing' || ttsState === 'paused') && (
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={handleStopTTS}
-                                    className="h-8 w-8"
-                                >
-                                    <Square className="h-3 w-3 fill-current" />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="translator">
+      <div className="translation-workspace">
+        <div className="source-language">
+          <LanguageDrawer selectedLang={sourceLang} onSelect={(lang) => { invalidateResult(); setSourceLang(lang); }} label="Source language" className="w-full" />
         </div>
-    );
+        <Button variant="swap" size="icon-lg" className="language-swap" onClick={handleSwap} aria-label="Swap languages">
+          <ArrowRightLeft className="size-6" aria-hidden="true" />
+        </Button>
+        <div className="target-language">
+          <LanguageDrawer selectedLang={targetLang} onSelect={(lang) => { invalidateResult(); setTargetLang(lang); }} label="Target language" className="w-full" />
+        </div>
+        <TranslationPanel className="source-panel" aria-label="Source text">
+          <Textarea
+            aria-label="Text to translate"
+            lang={sourceLang}
+            dir="auto"
+            placeholder="Enter text…"
+            value={inputText}
+            onChange={(event) => { invalidateResult(); setInputText(event.target.value); }}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                event.preventDefault();
+                void handleTranslate();
+              }
+            }}
+            className="translation-text translation-input"
+          />
+          <div className="source-footer">
+            <span className="character-count">{inputText.length > 0 && `${inputText.length.toLocaleString()} characters`}</span>
+            <Button variant="ghost" size="icon" onClick={() => { invalidateResult(); setInputText(""); }} disabled={!inputText} aria-label="Clear text">
+              <X className="size-6" aria-hidden="true" />
+            </Button>
+          </div>
+        </TranslationPanel>
+        <TranslationPanel tone="result" className="result-panel" aria-label="Translation">
+          <div className="translation-output" aria-busy={isLoading}>
+            <p className={`translation-text ${translatedText ? "" : "translation-placeholder"}`} lang={targetLang} dir="auto" aria-live="polite" aria-atomic="true">
+              {translatedText || (isLoading ? "Translating…" : "Your translation")}
+            </p>
+          </div>
+          <div className="result-footer">
+            <VoiceDrawer lang={targetLang} className="voice-selector" />
+            <Button variant="surface" size="lg" onClick={handleCopy} disabled={!translatedText} aria-label="Copy translation">
+              <Copy className="size-5" aria-hidden="true" />
+              Copy
+            </Button>
+          </div>
+        </TranslationPanel>
+      </div>
+      <TranslationActions translating={isLoading} canTranslate={!!inputText.trim()} canSpeak={!!translatedText && !isLoading} speechState={speechState} onTranslate={handleTranslate} onSpeak={handleSpeech} onStop={stopSpeech} />
+      <span className="sr-only" role="status">{translatedText ? `Translated to ${getLanguageName(targetLang)}` : ""}</span>
+    </div>
+  );
 }
 
 export default Translator;
