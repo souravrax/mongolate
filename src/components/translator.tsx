@@ -219,7 +219,7 @@ function Translator() {
           </div>
         </TranslationPanel>
       </div>
-      <TranslationActions instant={interactionMode === "keyboard"} translating={isLoading} canTranslate={!!inputText.trim()} canSpeak={!!translatedText && !isLoading} speechState={speechState} onTranslate={handleTranslate} onSpeak={handleSpeech} onStop={stopSpeech} />
+      <TranslationActions hasTranslation={!!translatedText} instant={interactionMode === "keyboard"} translating={isLoading} canTranslate={!!inputText.trim()} canSpeak={!!translatedText && !isLoading} speechState={speechState} onTranslate={handleTranslate} onSpeak={handleSpeech} onStop={stopSpeech} />
       <span className="sr-only" role="status">{translatedText ? `Translated to ${getLanguageName(targetLang)}` : ""}</span>
     </div>
   );

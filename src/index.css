@@ -247,8 +247,9 @@
 .voice-selector { min-width: 150px; max-width: 65%; }
 .character-count { color: var(--muted-foreground); font-size: 0.8125rem; }
 .translation-actions { display: flex; align-items: center; border-radius: 999px; background: var(--secondary); }
-.translate-action { flex: 3; border-radius: 999px; }
-.speak-action { flex: 2; background: transparent; border-radius: 999px; }
+.translate-action { flex: 1; min-width: 0; border-radius: 999px; }
+.speech-action-slot { display: flex; align-items: center; flex: 0 0 0%; min-width: 0; overflow: hidden; }
+.speak-action { flex: 1; min-width: max-content; background: transparent; border-radius: 999px; }
 .stop-action { margin-right: 12px; }
 
 @media (min-width: 768px) {
@@ -327,7 +328,7 @@
 }
 [data-slot="button"]:active:not(:focus-visible):not(:disabled) { scale: 0.98; }
 .action-content { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: inherit; pointer-events: none; }
-.translation-actions > button { position: relative; }
+.translation-actions button { position: relative; }
 .stop-action-slot { display: flex; flex-shrink: 0; }
 .selector-button > svg { transition: transform 180ms var(--ease-out); }
 .selector-button[aria-expanded="true"] > svg { transform: rotate(180deg); }

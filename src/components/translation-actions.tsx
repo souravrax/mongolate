@@ -11,14 +11,17 @@ interface TranslationActionsProps {
   instant?: boolean;
   canTranslate: boolean;
   canSpeak: boolean;
+  hasTranslation: boolean;
   speechState: SpeechState;
   onTranslate: () => void;
   onSpeak: () => void;
   onStop: () => void;
 }
 
-export function TranslationActions({ translating, instant = false, canTranslate, canSpeak, speechState, onTranslate, onSpeak, onStop }: TranslationActionsProps) {
+export function TranslationActions({ translating, instant = false, canTranslate, canSpeak, hasTranslation, speechState, onTranslate, onSpeak, onStop }: TranslationActionsProps) {
   const reducedMotion = useReducedMotion();
+  const speechWidth = speechState === "idle" ? "40%" : "56%";
+  const easeOut = [0.23, 1, 0.32, 1] as const;
   const speechLabels = { idle: "Speak", buffering: "Loading…", playing: "Pause", paused: "Resume" };
   const SpeechIcon = { idle: Volume2, buffering: Loader2, playing: Pause, paused: Play }[speechState];
 
@@ -36,28 +39,40 @@ export function TranslationActions({ translating, instant = false, canTranslate,
           {translating ? "Translating…" : "Translate"}
         </AnimatedControlContent>
       </Button>
-      <Button variant="secondary" size="action" onClick={onSpeak} disabled={!canSpeak || speechState === "buffering"} aria-busy={speechState === "buffering"} aria-label={speechLabels[speechState]} className="speak-action">
-        <AnimatedControlContent stateKey={speechState} instant={instant}>
-          <SpeechIcon className={`size-6 ${speechState === "buffering" ? "animate-spin" : ""}`} />
-          {speechLabels[speechState]}
-        </AnimatedControlContent>
-      </Button>
-      {instant ? (speechState !== "idle" && stopButton) : (
-        <AnimatePresence initial={false}>
-          {speechState !== "idle" && (
-            <m.div
-              key="stop"
-              className="stop-action-slot"
-              initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
-              transition={{ duration: reducedMotion ? 0.1 : 0.16, ease: [0.23, 1, 0.32, 1] }}
-            >
-              {stopButton}
-            </m.div>
-          )}
-        </AnimatePresence>
-      )}
+      <m.div
+        className="speech-action-slot"
+        initial={false}
+        animate={{ flexBasis: hasTranslation ? speechWidth : "0%", opacity: hasTranslation ? 1 : 0 }}
+        transition={{
+          flexBasis: { duration: instant || reducedMotion ? 0 : 0.26, ease: easeOut },
+          opacity: { duration: instant ? 0 : reducedMotion ? 0.1 : 0.16, ease: easeOut },
+        }}
+        inert={!hasTranslation}
+        aria-hidden={!hasTranslation}
+      >
+        <Button variant="secondary" size="action" onClick={onSpeak} disabled={!canSpeak || speechState === "buffering"} aria-busy={speechState === "buffering"} aria-label={speechLabels[speechState]} className="speak-action">
+          <AnimatedControlContent stateKey={speechState} instant={instant}>
+            <SpeechIcon className={`size-6 ${speechState === "buffering" ? "animate-spin" : ""}`} />
+            {speechLabels[speechState]}
+          </AnimatedControlContent>
+        </Button>
+        {instant ? (speechState !== "idle" && stopButton) : (
+          <AnimatePresence initial={false}>
+            {speechState !== "idle" && (
+              <m.div
+                key="stop"
+                className="stop-action-slot"
+                initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
+                transition={{ duration: reducedMotion ? 0.1 : 0.16, ease: [0.23, 1, 0.32, 1] }}
+              >
+                {stopButton}
+              </m.div>
+            )}
+          </AnimatePresence>
+        )}
+      </m.div>
     </div>
   );
 }
