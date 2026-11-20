@@ -43,7 +43,7 @@ function Translator() {
                 targetLang,
             });
         } catch (error) {
-            toast.error("Translation failed. Please try again.");
+            toast.error(error instanceof Error ? error.message : "Translation failed. Please try again.");
             console.error(error);
         } finally {
             setIsLoading(false);

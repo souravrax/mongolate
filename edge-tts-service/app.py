@@ -177,8 +177,20 @@ async def translate(req: TranslateRequest):
         translated = "".join(segments)
         return {"translated": translated}
 
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"Translate upstream error: {e}")
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            headers = {}
+            retry_after = e.response.headers.get("Retry-After")
+            if retry_after:
+                headers["Retry-After"] = retry_after
+            raise HTTPException(
+                status_code=429,
+                detail="Google Translate is temporarily rate-limiting translation requests. Please try again later.",
+                headers=headers,
+            ) from e
+        raise HTTPException(status_code=502, detail="The translation service returned an error.") from e
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail="Could not reach the translation service.") from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,6 +1,6 @@
 # Mongolate
 
-Mongolate uses Google Translate for translation and Microsoft Edge TTS for speech.
+Mongolate calls Google Translate directly from the browser for translation and uses a FastAPI backend for Microsoft Edge TTS speech.
 
 ## Run locally
 
@@ -9,7 +9,7 @@ In a second terminal, run `pnpm install --frozen-lockfile` and `pnpm dev` from t
 
 ## Deploy to Vercel
 
-Use the repository root as the Vercel project root. `vercel.json` builds the Vite frontend and `edge-tts-service/` together using Vercel Services. Both preview and production builds call `/api` on their own deployment domain. Smoke test `GET /api/voices`, a translation, and Mongolian audio playback on the preview before promoting it.
+Use the repository root as the Vercel project root. `vercel.json` builds the Vite frontend and `edge-tts-service/` together using Vercel Services. Both preview and production builds call `/api` on their own deployment domain for voice discovery and speech. Translation requests go directly to Google from the browser. Smoke test `GET /api/voices`, a translation, and Mongolian audio playback on the preview before promoting it.
 
 ## Frontend tooling
 
