@@ -1,3 +1,5 @@
+import * as m from "motion/react-m";
+import { useReducedMotion } from "motion/react";
 import { useState, useEffect, useRef } from "react";
 import { translateText } from "@/services/translate";
 import { streamTextToSpeech } from "@/services/tts";
@@ -11,9 +13,14 @@ import { TranslationPanel } from "./translation-panel";
 import { TranslationActions, type SpeechState } from "./translation-actions";
 import { useHistoryStore } from "@/store/history-store";
 import { useVoiceStore } from "@/store/voice-store";
+import { useSwapAnimation } from "@/hooks/use-swap-animation";
 import { getLanguageName } from "@/lib/languages";
 
 function Translator() {
+  const [swapCount, setSwapCount] = useState(0);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const [interactionMode, setInteractionMode] = useState<"pointer" | "keyboard">("pointer");
   const [inputText, setInputText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +32,8 @@ function Translator() {
   const saveTranslation = useHistoryStore((state) => state.saveTranslation);
   const voiceMap = useVoiceStore((state) => state.voiceMap);
   const voices = useVoiceStore((state) => state.voices);
+
+  useSwapAnimation(workspaceRef, swapCount, interactionMode === "pointer");
 
   const stopSpeech = () => {
     speechRef.current?.stop();
@@ -119,6 +128,7 @@ function Translator() {
   };
 
   const handleSwap = () => {
+    setSwapCount((count) => count + 1);
     requestRef.current += 1;
     setIsLoading(false);
     stopSpeech();
@@ -150,18 +160,16 @@ function Translator() {
   }, []);
 
   return (
-    <div className="translator">
-      <div className="translation-workspace">
-        <div className="source-language">
-          <LanguageDrawer selectedLang={sourceLang} onSelect={(lang) => { invalidateResult(); setSourceLang(lang); }} label="Source language" className="w-full" />
-        </div>
-        <Button variant="swap" size="icon-lg" className="language-swap" onClick={handleSwap} aria-label="Swap languages">
-          <ArrowRightLeft className="size-6" aria-hidden="true" />
-        </Button>
-        <div className="target-language">
-          <LanguageDrawer selectedLang={targetLang} onSelect={(lang) => { invalidateResult(); setTargetLang(lang); }} label="Target language" className="w-full" />
-        </div>
+    <div
+      className="translator"
+      onPointerDownCapture={() => setInteractionMode("pointer")}
+      onKeyDownCapture={() => setInteractionMode("keyboard")}
+    >
+      <div className="translation-workspace" ref={workspaceRef}>
         <TranslationPanel className="source-panel" aria-label="Source text">
+          <div className="source-language">
+            <LanguageDrawer selectedLang={sourceLang} onSelect={(lang) => { invalidateResult(); setSourceLang(lang); }} label="Source language" className="w-full" />
+          </div>
           <Textarea
             aria-label="Text to translate"
             lang={sourceLang}
@@ -184,7 +192,19 @@ function Translator() {
             </Button>
           </div>
         </TranslationPanel>
+        <Button variant="swap" size="icon-lg" className="language-swap" onClick={handleSwap} aria-label="Swap languages">
+          <m.span
+            className="inline-flex"
+            animate={{ rotate: reducedMotion ? 0 : swapCount * 180 }}
+            transition={{ duration: interactionMode === "keyboard" || reducedMotion ? 0 : 0.48, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <ArrowRightLeft className="size-5" aria-hidden="true" />
+          </m.span>
+        </Button>
         <TranslationPanel tone="result" className="result-panel" aria-label="Translation">
+          <div className="target-language">
+            <LanguageDrawer selectedLang={targetLang} onSelect={(lang) => { invalidateResult(); setTargetLang(lang); }} label="Target language" className="w-full" />
+          </div>
           <div className="translation-output" aria-busy={isLoading}>
             <p className={`translation-text ${translatedText ? "" : "translation-placeholder"}`} lang={targetLang} dir="auto" aria-live="polite" aria-atomic="true">
               {translatedText || (isLoading ? "Translating…" : "Your translation")}
@@ -199,7 +219,7 @@ function Translator() {
           </div>
         </TranslationPanel>
       </div>
-      <TranslationActions translating={isLoading} canTranslate={!!inputText.trim()} canSpeak={!!translatedText && !isLoading} speechState={speechState} onTranslate={handleTranslate} onSpeak={handleSpeech} onStop={stopSpeech} />
+      <TranslationActions instant={interactionMode === "keyboard"} translating={isLoading} canTranslate={!!inputText.trim()} canSpeak={!!translatedText && !isLoading} speechState={speechState} onTranslate={handleTranslate} onSpeak={handleSpeech} onStop={stopSpeech} />
       <span className="sr-only" role="status">{translatedText ? `Translated to ${getLanguageName(targetLang)}` : ""}</span>
     </div>
   );
