@@ -119,6 +119,10 @@
     color-scheme: light;
     -webkit-tap-highlight-color: transparent;
     }
+  html, body {
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    }
 }
 
 @keyframes wave {
@@ -220,6 +224,7 @@
 .translation-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 8px; box-shadow: none; }
 .translation-input::placeholder, .translation-placeholder { color: var(--muted-foreground); }
 .translation-output { flex: 1; min-height: 180px; padding-top: 8px; max-height: 360px; overflow-y: auto; }
+.translation-input, .translation-output { overscroll-behavior: contain; }
 .source-footer, .result-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
 .result-footer { flex-wrap: wrap; }
 .voice-selector { min-width: 150px; max-width: 65%; }
